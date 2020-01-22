@@ -41,7 +41,6 @@ class Autoencoder(nn.Module):
 #defining some params
 num_epochs = 200 
 batch_size = 128
-
 trainset = tv.datasets.CIFAR10(root='./data',  train=True,download=True, transform=transform)
 dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4)
 testset = tv.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
