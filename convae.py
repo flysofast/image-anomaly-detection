@@ -59,7 +59,7 @@ optimizer = torch.optim.Adam(model.parameters(),weight_decay=1e-5)
 output_folder = "output"
 weights_folder = os.path.join(output_folder, "weights")
 image_folder = os.path.join(output_folder, "image")
-
+os.makedirs(image_folder, exist_ok = True)
 os.makedirs(weights_folder, exist_ok = True)
 for epoch in range(num_epochs):
     for data in dataloader:
