@@ -1,13 +1,47 @@
 import os
 import pandas as pd
 # from skimage import io, transform
-from torch.utils.data import Dataset, SubsetRandomSampler
+from torch.utils.data import Dataset, SubsetRandomSampler, DataLoader
 from PIL import Image
 import numpy as np
+from glob import glob
+import torchvision.transforms as transforms
+import torch
 # Ignore warnings
 # import warnings
 # warnings.filterwarnings("ignore")
 
+class MVTecAd(Dataset):
+    """MVTecAd dataset."""
+
+    def __init__(self, subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", val_split= "val_split.txt", transform=None):
+        """
+        Args:
+            subset: can be "train", "val" or "test". "train" and "test" are the original splits substract the items in the "val" set, which were predefined and contains both classes
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        assert subset in ["train", "val", "test"], "Invalid subset name"
+
+        val_split =  open(os.path.join(root_dir, "val_split.txt"))
+        val_set = [path for path in val_split.read().splitlines() if os.path.join(root_dir, category) in path]
+        if subset == "val":
+            self.images = val_set
+        else:
+            self.images = [img for img in glob(os.path.join(root_dir, category, subset, "**", "*.png")) if img not in val_set]
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.images[idx])
+        if self.transform:
+            img = self.transform(img)
+        
+        return img
 
 class HAM10000(Dataset):
     """HAM10000 dataset."""
@@ -49,6 +83,7 @@ class HAM10000(Dataset):
         label = lesion["dx"]
         if self.transform:
             img = self.transform(img)
+        img = img
 
         return img, label
 
@@ -65,3 +100,19 @@ def get_trainval_samplers(dataset: Dataset, validation_split = 0.2, random_seed=
     train_sampler = SubsetRandomSampler(train_indices)
     valid_sampler = SubsetRandomSampler(val_indices)
     return train_sampler, valid_sampler
+
+if __name__ == "__main__":
+    data_transform = transforms.Compose([
+        # transforms.RandomSizedCrop(224),
+        # transforms.RandomPerspective(),
+        transforms.RandomCrop(400),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomHorizontalFlip(),
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        #                      std=[0.229, 0.224, 0.225]),
+        transforms.ToTensor(),
+    ])
+    dataset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=data_transform)
+    trainloader = DataLoader(dataset, batch_size=1, num_workers=4)
+    for img in trainloader:
+        print(img.shape)
