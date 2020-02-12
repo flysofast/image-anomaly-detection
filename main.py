@@ -12,6 +12,7 @@ import random
 from model import Autoencoder
 from datasets import MVTecAd
 import datetime
+from tensorboardX import SummaryWriter
 os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 # Loading and Transforming data
 train_data_transform = transforms.Compose([
@@ -27,13 +28,6 @@ train_data_transform = transforms.Compose([
 val_data_transform = transforms.Compose([
         transforms.ToTensor(),
     ])
-
-# dataset = HAM10000(subset="train", csv_file="HAM10000_metadata.csv", image_folder="HAM10000_images", root_dir="dataset", transform=data_transform)
-# train_sampler, val_sampler = get_trainval_samplers(dataset, validation_split=0.2)
-# train_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4, sampler=train_sampler)
-# val_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4, sampler=val_sampler)
-# valset = HAM10000(subset="test", csv_file="HAM10000_metadata.csv", image_folder="HAM10000_images", root_dir="dataset", transform=data_transform)
-# val_loader = DataLoader(trainset, batch_size=1, shuffle=True, num_workers=4)
 
 
 valset = MVTecAd(subset="val", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=val_data_transform)
@@ -53,12 +47,15 @@ if torch.cuda.device_count() > 1:
 model = model.to(device)
 
 loss_op = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(),weight_decay=1e-5)
-output_folder = os.path.join("output", datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
+optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5)
+exp_name = f'AE_{datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")}'
+output_folder = os.path.join("output", exp_name)
 weights_folder = os.path.join(output_folder, "models")
 results_folder = os.path.join(output_folder, "results")
 os.makedirs(weights_folder, exist_ok = True)
 os.makedirs(results_folder, exist_ok = True)
+
+writer = SummaryWriter(log_dir=f"log/{exp_name}")
 
 print("Start training")
 for epoch in range(num_epochs):
@@ -66,7 +63,7 @@ for epoch in range(num_epochs):
     pbar = tqdm(train_loader)
     pbar.set_description(f"Epoch {epoch+1}/{num_epochs}")
 
-    for img in pbar:
+    for i, img in enumerate(pbar):
         img = img.to(device)
         optimizer.zero_grad()
         output = model(img)
@@ -74,6 +71,9 @@ for epoch in range(num_epochs):
 
         loss.backward()
         optimizer.step()
+
+        writer.add_scalar("MSE/train", loss.item(), epoch * len(train_loader) + i)
+
 
     print('epoch [{}/{}], loss:{:.4f}'.format(epoch+1, num_epochs, loss.data.cpu().numpy()))
     if isinstance(model, nn.DataParallel):
@@ -92,10 +92,21 @@ for epoch in range(num_epochs):
             img = img.to(device)
             output = model(img)
             loss = loss_op(output, img).data.cpu()
+            diff = torch.abs(img - output)
+            # breakpoint()
+            # Repeat one channeled mean values along channel axis to the same shape of an image
+            diff_avg = torch.mean(diff, dim=1).unsqueeze(1).expand(-1, 3, -1, -1)
             # correct = correct + 1 if loss.item() > 0.5
-            image = torch.cat((img, output), 2)
+            image = torch.cat((img, output, diff, diff_avg), 0)
             image = image.cpu()
             result_image = os.path.join(results_folder, f"output_{epoch}_{loss:.4f}.png")
-            save_image(image, result_image)
-            print(f"Result image saved at {result_image}")
+            # save_image(image, result_image)
+            # create grid of images
+            img_grid = torchvision.utils.make_grid(image)
+            torchvision.utils.save_image(image, result_image, nrow=image.shape[0])
+
+            # write to tensorboard
+            writer.add_scalar("MSE/val", loss.item(), global_step=epoch)
+            writer.add_image('Val images', img_grid, global_step=epoch)
+        print(f"Result images saved at {results_folder}")
 
