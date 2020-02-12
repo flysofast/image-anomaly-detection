@@ -114,8 +114,8 @@ for epoch in range(num_epochs):
                 # print(f"Result images saved at {results_folder}")
 
             # write to tensorboard
-            writer.add_scalar("MSE/val", loss.item(), global_step=epoch)
-            writer.add_image('Val images', img_grid, global_step=epoch)
+            writer.add_scalar("MSE/val", loss.item(), global_step=epoch * len(train_loader) + index)
+            writer.add_image('Val images', img_grid, global_step=epoch * len(train_loader) + index)
     
     if epoch_loss < min_loss:
         min_loss = epoch_loss
