@@ -34,7 +34,7 @@ valset = MVTecAd(subset="val", category="hazelnut", root_dir="dataset/mvtec_anom
 val_loader = DataLoader(valset, batch_size=1, num_workers=4)
 
 num_epochs = 2000
-batch_size = 32
+batch_size = 4
 save_interval = 10
 trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
 train_loader = DataLoader(trainset, batch_size=batch_size, num_workers=4)
