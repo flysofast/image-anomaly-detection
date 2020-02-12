@@ -33,7 +33,7 @@ val_data_transform = transforms.Compose([
 valset = MVTecAd(subset="val", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=val_data_transform)
 val_loader = DataLoader(valset, batch_size=1, num_workers=4)
 
-num_epochs = 200 
+num_epochs = 2000
 batch_size = 32
 save_interval = 10
 trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
@@ -111,7 +111,7 @@ for epoch in range(num_epochs):
                 # create grid of images
                 img_grid = torchvision.utils.make_grid(image)
                 torchvision.utils.save_image(image, result_image, nrow=image.shape[0])
-                print(f"Result images saved at {results_folder}")
+                # print(f"Result images saved at {results_folder}")
 
             # write to tensorboard
             writer.add_scalar("MSE/val", loss.item(), global_step=epoch)
