@@ -97,7 +97,7 @@ def train(train_loader, val_loader, test_loader, args):
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='Autoencoder anomaly detection')
-    parser.add_argument('--exp_name', type=int, default="AE")
+    parser.add_argument('--exp_name', type=str, default="AE")
     parser.add_argument('--batch_size', type=int, default=32, metavar='b',
                         help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=2000, metavar='ne',
