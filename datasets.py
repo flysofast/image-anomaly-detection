@@ -17,32 +17,37 @@ class MVTecAd(Dataset):
     def __init__(self, subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", val_split= "val_split.txt", transform=None):
         """
         Args:
-            subset: can be "train", "val" or "test". "train" and "test" are the original splits substract the items in the "val" set, which were predefined and contains both classes
+            subset: can be "train" or "test", which represents the orignal splits of the category from the dataset
             root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        assert subset in ["train", "val", "test"], "Invalid subset name"
+        assert subset in ["train", "test"], "Invalid subset name"
 
-        val_split =  open(os.path.join(root_dir, "val_split.txt"))
-        val_set = [path for path in val_split.read().splitlines() if os.path.join(root_dir, category) in path]
-        if subset == "val":
-            self.images = val_set
-        else:
-            self.images = [img for img in glob(os.path.join(root_dir, category, subset, "**", "*.png")) if img not in val_set]
+        # test_split =  open(os.path.join(root_dir, "train_test_split.txt"))
+        # test_set = [path for path in test_split.read().splitlines() if os.path.join(root_dir, category) in path]
+        # if subset == "test":
+        #     good_images = [(img, 1) for img in glob(os.path.join(root_dir, category, "test", "good", "*.png"))]
+            
+        # else:
+            
+        #     self.images = [ (img, 1) for img in glob(os.path.join(root_dir, category, "train", "**", "*.png"))]
+        self.images = glob(os.path.join(root_dir, category, subset, "**", "*.png"))
         self.root_dir = root_dir
         self.transform = transform
 
     def __len__(self):
-        # return 5
+        # return 10
         return len(self.images)
 
     def __getitem__(self, idx):
+        # path, label = self.images[idx].split(",")
+        # label = int(label)
         img = Image.open(self.images[idx])
         if self.transform:
             img = self.transform(img)
         
-        return img
+        return img, 1 #labels are ignored for now
 
 class HAM10000(Dataset):
     """HAM10000 dataset."""
@@ -88,15 +93,17 @@ class HAM10000(Dataset):
 
         return img, label
 
-def get_trainval_samplers(dataset: Dataset, validation_split = 0.2, random_seed=42):
+def get_trainval_samplers(dataset: Dataset, validation_split = 0.2):
+    """
+        Creates random samples for train/val splits
+    """
+
     # Creating data indices for training and validation splits:
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
-    np.random.seed(random_seed)
     np.random.shuffle(indices)
     train_indices, val_indices = indices[split:], indices[:split]
-
     # Creating PT data samplers and loaders:
     train_sampler = SubsetRandomSampler(train_indices)
     valid_sampler = SubsetRandomSampler(val_indices)
