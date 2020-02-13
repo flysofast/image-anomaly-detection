@@ -22,8 +22,8 @@ train_data_transform = transforms.Compose([
         transforms.RandomVerticalFlip(),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-        #                      std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
     ])
 val_data_transform = transforms.Compose([
         transforms.ToTensor(),
@@ -34,7 +34,7 @@ valset = MVTecAd(subset="val", category="hazelnut", root_dir="dataset/mvtec_anom
 val_loader = DataLoader(valset, batch_size=1, num_workers=4)
 
 num_epochs = 2000
-batch_size = 4
+batch_size = 8
 save_interval = 10
 trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
 train_loader = DataLoader(trainset, batch_size=batch_size, num_workers=4)
@@ -59,12 +59,13 @@ writer = SummaryWriter(log_dir=f"log/{exp_name}")
 
 print("Start training")
 min_loss = 1e10
+saving = False
 for epoch in range(num_epochs):
     model.train(True)
-    pbar = tqdm(train_loader)
-    pbar.set_description(f"Epoch {epoch+1}/{num_epochs}")
+    train_batches = tqdm(train_loader)
+    train_batches.set_description(f"Epoch {epoch+1}/{num_epochs}")
     epoch_loss = 0
-    for i, img in enumerate(pbar):
+    for i, img in enumerate(train_batches):
         img = img.to(device)
         optimizer.zero_grad()
         output = model(img)
@@ -79,8 +80,9 @@ for epoch in range(num_epochs):
 
     print('epoch [{}/{}], loss:{:.4f}'.format(epoch+1, num_epochs, epoch_loss/len(train_loader)))
 
-    if epoch_loss < min_loss or epoch % save_interval == 0:
-        
+    ##TODO: evaluate based on detection performance and reconstruction performance 
+    if epoch_loss < min_loss or epoch % save_interval == 0: 
+        saving = True
         if isinstance(model, nn.DataParallel):
             state_dict = model.module.state_dict()
         else:
@@ -91,31 +93,37 @@ for epoch in range(num_epochs):
 
     print("Validating...")
     model.eval()
+    val_epoch_loss = 0
+    val_images = None
     with torch.no_grad():
         for index, img in enumerate(tqdm(val_loader)):
             # img, _ = data
             img = img.to(device)
             output = model(img)
-            loss = loss_op(output, img).data.cpu()
+            loss = loss_op(output, img)
+            val_epoch_loss += loss.item()
             
-            if epoch_loss < min_loss or epoch % save_interval == 0:
+            if saving:
                 diff = torch.abs(img - output)
-                
-                # Repeat one channeled mean values along channel axis to the same shape of an image
+
+                # Grayscaled diff image (average of 3 channels)
                 diff_avg = torch.mean(diff, dim=1).unsqueeze(1).expand(-1, 3, -1, -1)
                 
                 image = torch.cat((img, output, diff, diff_avg), 0)
-                image = image.cpu()
-                result_image = os.path.join(results_folder, f"output_{epoch}_{loss:.4f}.png")
+                if val_images is None:
+                    val_images = image
+                else:
+                    val_images = torch.cat((val_images, image), dim=0)
 
-                # create grid of images
-                img_grid = torchvision.utils.make_grid(image)
-                torchvision.utils.save_image(image, result_image, nrow=image.shape[0])
-                # print(f"Result images saved at {results_folder}")
+        # write to tensorboard
+        writer.add_scalar("MSE/val", val_epoch_loss/len(val_loader), global_step=epoch_loss )
+        if saving:
+            val_images = torchvision.utils.make_grid(val_images, nrow=4)
+            writer.add_image('Val images', val_images, global_step=epoch)
 
-            # write to tensorboard
-            writer.add_scalar("MSE/val", loss.item(), global_step=epoch * len(train_loader) + index)
-            writer.add_image('Val images', img_grid, global_step=epoch * len(train_loader) + index)
+            result_image = os.path.join(results_folder, f"val_{epoch}.png")
+            torchvision.utils.save_image(val_images, result_image)
+            print(f"Validation images saved at {results_folder}")
     
     if epoch_loss < min_loss:
         min_loss = epoch_loss

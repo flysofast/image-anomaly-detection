@@ -34,7 +34,7 @@ class MVTecAd(Dataset):
         self.transform = transform
 
     def __len__(self):
-        # return 1
+        # return 5
         return len(self.images)
 
     def __getitem__(self, idx):
