@@ -30,6 +30,7 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, s
         for index, (img, gt) in enumerate(tqdm(test_loader)):
             # img, _ = data
             img = img.to(device)
+            gt = gt.to(device)
             output = model(img)
             diff = torch.abs(img - output)
             
