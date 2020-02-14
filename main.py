@@ -77,11 +77,10 @@ def train(train_loader, val_loader, test_loader, args):
         #========Test on mixed set=============
         test_error = test_on_mixed_samples(model=model, test_loader=test_loader, 
                             loss_op=loss_op, epoch=epoch, writer=writer, results_folder=results_folder, 
-                            saving=saving, n_saved_results=args.n_saved_samples)
+                             n_saved_results=args.n_saved_samples)
         print(f'Epoch [{epoch+1}/{num_epochs}], train_loss:{train_loss:.4f} val_loss:{epoch_loss/len(val_loader):.4f} test error: {test_error:.4f}')
         
         if test_error < min_loss or epoch % args.save_interval == 0: 
-            saving = True
             if isinstance(model, nn.DataParallel):
                 state_dict = model.module.state_dict()
             else:
