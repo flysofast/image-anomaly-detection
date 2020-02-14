@@ -39,7 +39,6 @@ class MVTecAd(Dataset):
         self.category = category
 
     def __len__(self):
-        return 5
         return len(self.images)
 
     def __getitem__(self, idx):
