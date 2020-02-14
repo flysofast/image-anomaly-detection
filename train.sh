@@ -1,2 +1,2 @@
 #!/bin/bash
-python main.py --batch_size 32 --exp_name BottleNeck --seed 42
+python main.py --batch_size 32 --exp_name BottleNeck_2 --seed 42

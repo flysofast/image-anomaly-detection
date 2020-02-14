@@ -35,19 +35,39 @@ class MVTecAd(Dataset):
         self.images = glob(os.path.join(root_dir, category, subset, "**", "*.png"))
         self.root_dir = root_dir
         self.transform = transform
+        self.subset = subset
+        self.category = category
 
     def __len__(self):
-        # return 10
+        return 5
         return len(self.images)
 
     def __getitem__(self, idx):
-        # path, label = self.images[idx].split(",")
-        # label = int(label)
-        img = Image.open(self.images[idx])
+        """
+        Returns:
+            img: the image samples
+            gt: the ground truth for defectious samples. If the samples is good the return an all-zeros mask
+        """
+        img_path = self.images[idx]
+        img = Image.open(img_path)
         if self.transform:
             img = self.transform(img)
         
-        return img, 1 #labels are ignored for now
+        gt = torch.zeros_like(img)
+        # Load ground truth if it's available
+        if self.subset == "test":
+            gt_path = img_path.replace(os.path.join(self.category, self.subset), os.path.join(self.category, "ground_truth"))
+
+            # Deal with filenames only to be more robust in case of weird folder names
+            fn = os.path.basename(os.path.normpath(gt_path))
+            new_fn = fn.replace(".png","_mask.png")
+            gt_path = gt_path.replace(fn, new_fn)
+            # Good samples won't have ground truth
+            if os.path.exists(gt_path):
+                gt = Image.open(gt_path)
+                gt = transforms.functional.to_tensor(gt).expand(3, -1, -1)
+        
+        return img, gt
 
 class HAM10000(Dataset):
     """HAM10000 dataset."""
@@ -122,5 +142,5 @@ if __name__ == "__main__":
     ])
     dataset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=data_transform)
     trainloader = DataLoader(dataset, batch_size=1, num_workers=4)
-    for img in trainloader:
+    for img, gt in trainloader:
         print(img.shape)

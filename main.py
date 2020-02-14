@@ -74,9 +74,14 @@ def train(train_loader, val_loader, test_loader, args):
             epoch_loss += loss_val
             writer.add_scalar("MSE/val", loss_val, epoch * len(val_loader) + i)
 
-        print('Epoch [{}/{}], train_loss:{:.4f} val_loss:{:.4f}'.format(epoch+1, num_epochs, train_loss, epoch_loss/len(val_loader)))
-        ##TODO: evaluate based on detection performance and reconstruction performance 
-        if epoch_loss < min_loss or epoch % args.save_interval == 0: 
+        
+        print("Testing...")
+        test_error = test_on_mixed_samples(model=model, test_loader=test_loader, 
+                            loss_op=loss_op, epoch=epoch, writer=writer, results_folder=results_folder, 
+                            saving=saving, n_saved_results=args.n_saved_samples)
+        print(f'Epoch [{epoch+1}/{num_epochs}], train_loss:{train_loss:.4f} val_loss:{epoch_loss/len(val_loader):.4f} test error: {test_error:.4f}')
+        
+        if test_error < min_loss or epoch % args.save_interval == 0: 
             saving = True
             if isinstance(model, nn.DataParallel):
                 state_dict = model.module.state_dict()
@@ -85,14 +90,10 @@ def train(train_loader, val_loader, test_loader, args):
             model_file = os.path.join(weights_folder, f"model_{epoch}.pth")
             torch.save(state_dict, model_file)
             print(f"Model saved at {model_file}")
-
-        print("Testing...")
-        test_on_mixed_samples(model=model, test_loader=test_loader, 
-                            loss_op=loss_op, epoch=epoch, writer=writer, results_folder=results_folder, 
-                            saving=saving, n_saved_results=args.n_saved_samples)
         
-        if epoch_loss < min_loss:
-            min_loss = epoch_loss
+        if test_error < min_loss:
+            min_loss = test_error
+
 
 if __name__ == "__main__":
     # Training settings
@@ -131,7 +132,7 @@ if __name__ == "__main__":
         ])
 
     testset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
-    test_loader = DataLoader(testset, batch_size=1, num_workers=4)
+    test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
 
     trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
     ts, vs = get_trainval_samplers(trainset, validation_split=0.2)
