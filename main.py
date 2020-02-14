@@ -29,7 +29,7 @@ def train(train_loader, val_loader, test_loader, args):
     model = model.to(device)
 
     loss_op = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5, lr=args.lr)
     exp_name = f'{args.exp_name}_{datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")}'
     output_folder = os.path.join("output", exp_name)
     weights_folder = os.path.join(output_folder, "models")
@@ -46,7 +46,6 @@ def train(train_loader, val_loader, test_loader, args):
         print(f"==============================Epoch {epoch+1}/{num_epochs}==============================")
         model.train(True)
         train_batches = tqdm(train_loader)
-        # train_batches.set_description(f"Epoch {epoch+1}/{num_epochs}")
         epoch_loss = 0
         for i, (img,_) in enumerate(train_batches):
             img = img.to(device)
@@ -61,6 +60,7 @@ def train(train_loader, val_loader, test_loader, args):
             writer.add_scalar("MSE/train", loss_val, epoch * len(train_loader) + i)
         train_loss = epoch_loss/len(train_loader)
         
+        #=================Validate the autoencoder on val set===============
         print("Validating...")
         val_batches = tqdm(val_loader)
         model.eval()
@@ -74,8 +74,7 @@ def train(train_loader, val_loader, test_loader, args):
             epoch_loss += loss_val
             writer.add_scalar("MSE/val", loss_val, epoch * len(val_loader) + i)
 
-        
-        print("Testing...")
+        #========Test on mixed set=============
         test_error = test_on_mixed_samples(model=model, test_loader=test_loader, 
                             loss_op=loss_op, epoch=epoch, writer=writer, results_folder=results_folder, 
                             saving=saving, n_saved_results=args.n_saved_samples)
@@ -101,18 +100,21 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str, default="AE")
     parser.add_argument('--batch_size', type=int, default=32, metavar='b',
                         help='input batch size for training (default: 32)')
-    parser.add_argument('--epochs', type=int, default=2000, metavar='ne',
-                        help='number of epochs to train (default: 2000)')
-    # parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
-    #                     help='learning rate (default: 1.0)')
+    parser.add_argument('--epochs', type=int, default=200, metavar='ne',
+                        help='number of epochs to train (default: 200)')
+    parser.add_argument('--lr', type=float, default=1e-3,
+                        help='learning rate (default: 1e-3)')
+    parser.add_argument('--num_workers', type=float, default=4)
     # parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
     #                     help='Learning rate step gamma (default: 0.7)')
+
+    # Data settings
+    parser.add_argument('--crop_size', type=int, default=400, metavar='cs',
+                        help='number of epochs to train (default: 200)')
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
-    parser.add_argument('--n_saved_samples', type=int, default=5, help='number of random saved samples during validation (default: 5)')
+    parser.add_argument('--n_saved_samples', type=int, default=5, help='number of random saved samples during testing (default: 5)')
     parser.add_argument('--save_interval', type=int, default=10, metavar='i',
                         help='Saving interval in number of epochs')
-    # parser.add_argument('--log_interval', type=int, default=10, metavar='i',
-    #                     help='Writing log interval in number of epochs')
 
     args = parser.parse_args()
     torch.manual_seed(args.seed)
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     train_data_transform = transforms.Compose([
             # transforms.RandomSizedCrop(224),
             # transforms.RandomPerspective(),
-            transforms.RandomCrop(600),
+            transforms.RandomCrop(args.crop_size),
             transforms.RandomVerticalFlip(),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -136,8 +138,8 @@ if __name__ == "__main__":
 
     trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
     ts, vs = get_trainval_samplers(trainset, validation_split=0.2)
-    train_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=4, sampler=ts)
-    val_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=4, sampler=vs)
+    train_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=ts)
+    val_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=vs)
     train(train_loader=train_loader, val_loader=val_loader, test_loader=test_loader, args=args)
     
 

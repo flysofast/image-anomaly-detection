@@ -40,15 +40,15 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, s
             diff_avg = channelwised_normalize(diff_avg)
             diff = channelwised_normalize(diff)     
 
-            # # Ignore good samples for the error calculation
-            # if type(gt) is int and gt == 0:
-            #     loss = loss_op(diff_avg, gt)
-            #     test_epoch_loss += loss.item()
+            # Make the grayscale image 3-channeled
+            diff_avg = diff_avg.expand(-1, 3, -1, -1)
+
+            loss = loss_op(diff_avg, gt)
+            test_epoch_loss += loss.item()
 
             # Save the results if requested
             if saving and index in chosen_sample_i:
-                # Make the grayscale image 3-channeled
-                diff_avg = diff_avg.expand(-1, 3, -1, -1)
+                diff_avg = diff_avg
                 image = torch.cat((img, output, gt, diff, diff_avg), 0)
                 if test_images is None:
                     test_images = image
