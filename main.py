@@ -41,18 +41,17 @@ def train(train_loader, val_loader, test_loader, args):
 
     print("Start training")
     min_loss = 1e10
-    saving = False
     for epoch in range(num_epochs):
         print(f"==============================Epoch {epoch+1}/{num_epochs}==============================")
         model.train(True)
         train_batches = tqdm(train_loader)
         epoch_loss = 0
-        for i, (img,_) in enumerate(train_batches):
+        for i, (img, gt) in enumerate(train_batches):
             img = img.to(device)
             optimizer.zero_grad()
             output = model(img)
-            loss = loss_op(output, img)
-
+            # loss = loss_op(output, img)
+            loss = loss_op(output, gt)
             loss.backward()
             optimizer.step()
             loss_val = loss.item()
@@ -65,10 +64,11 @@ def train(train_loader, val_loader, test_loader, args):
         val_batches = tqdm(val_loader)
         model.eval()
         epoch_loss = 0
-        for i, (img, _) in enumerate(val_batches):
+        for i, (img, gt) in enumerate(val_batches):
             img = img.to(device)
             output = model(img)
-            loss = loss_op(output, img)
+            # loss = loss_op(output, img)
+            loss = loss_op(output, gt)
 
             loss_val = loss.item()
             epoch_loss += loss_val

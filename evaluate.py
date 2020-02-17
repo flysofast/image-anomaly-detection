@@ -95,7 +95,7 @@ def binarize(batch_image):
     th_batch, gth_batch, otsu_batch = torch.zeros_like(batch_image), torch.zeros_like(batch_image), torch.zeros_like(batch_image)
     batch_image = batch_image.permute(0, 2, 3, 1).numpy()
     for i, image in enumerate(batch_image):
-        img = cv2.convertScaleAbs(image)
+        img = cv2.convertScaleAbs(image, 0 , 255)
 
         _ ,img1 = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
         cv2.normalize(img1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='Autoencoder anomaly detection')
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
-    parser.add_argument('--weights_path', type=str, default="model_860.pth", metavar='w',
+    parser.add_argument('--weights_path', type=str, default="BottleNeckv3_130.pth", metavar='w',
                         help='Saving interval in number of epochs')
 
     args = parser.parse_args()
@@ -132,4 +132,4 @@ if __name__ == "__main__":
 
     testset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
     test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
-    test_on_mixed_samples(model=model, test_loader=test_loader, loss_op=nn.MSELoss(), writer=None, results_folder="test_results", saving=True, n_saved_results=5)
+    test_on_mixed_samples(model=model, test_loader=test_loader, loss_op=nn.MSELoss(), writer=None, results_folder="test_results", n_saved_results=5)
