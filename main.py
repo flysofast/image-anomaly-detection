@@ -48,6 +48,7 @@ def train(train_loader, val_loader, test_loader, args):
         epoch_loss = 0
         for i, (img, gt) in enumerate(train_batches):
             img = img.to(device)
+            gt = gt.to(device)
             optimizer.zero_grad()
             output = model(img)
             # loss = loss_op(output, img)
@@ -66,6 +67,7 @@ def train(train_loader, val_loader, test_loader, args):
         epoch_loss = 0
         for i, (img, gt) in enumerate(val_batches):
             img = img.to(device)
+            gt = gt.to(device)
             output = model(img)
             # loss = loss_op(output, img)
             loss = loss_op(output, gt)
