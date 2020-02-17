@@ -93,7 +93,7 @@ def binarize(batch_image):
             3 thresholded images
     """
     th_batch, gth_batch, otsu_batch = torch.zeros_like(batch_image), torch.zeros_like(batch_image), torch.zeros_like(batch_image)
-    batch_image = batch_image.permute(0, 2, 3, 1).numpy()
+    batch_image = batch_image.permute(0, 2, 3, 1).cpu().numpy()
     for i, image in enumerate(batch_image):
         img = cv2.convertScaleAbs(image, 0 , 255)
 
