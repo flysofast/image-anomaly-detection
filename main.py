@@ -16,6 +16,7 @@ from tensorboardX import SummaryWriter
 import argparse
 from evaluate import test_on_mixed_samples
 from splitter import split_train_test
+import torchsummary
 os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 
 def train(train_loader, val_loader, test_loader, args):
@@ -38,16 +39,18 @@ def train(train_loader, val_loader, test_loader, args):
     os.makedirs(results_folder, exist_ok = True)
 
     writer = SummaryWriter(log_dir=f"log/{exp_name}")
-
     print("Start training")
     min_loss = 1e10
-    saving = False
+    # saving = False
     for epoch in range(num_epochs):
         print(f"==============================Epoch {epoch+1}/{num_epochs}==============================")
         model.train(True)
         train_batches = tqdm(train_loader)
         epoch_loss = 0
         for i, (img,_) in enumerate(train_batches):
+            if epoch == 0 and i == 0:
+                torchsummary.summary(model, img[0].shape)
+
             img = img.to(device)
             optimizer.zero_grad()
             output = model(img)
@@ -66,6 +69,7 @@ def train(train_loader, val_loader, test_loader, args):
         model.eval()
         epoch_loss = 0
         for i, (img, _) in enumerate(val_batches):
+            
             img = img.to(device)
             output = model(img)
             loss = loss_op(output, img)
@@ -108,6 +112,8 @@ if __name__ == "__main__":
     #                     help='Learning rate step gamma (default: 0.7)')
 
     # Data settings
+    parser.add_argument('--category', type=str, default="hazelnut")
+
     parser.add_argument('--crop_size', type=int, default=400, metavar='cs',
                         help='number of epochs to train (default: 200)')
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
@@ -132,10 +138,10 @@ if __name__ == "__main__":
             transforms.ToTensor(),
         ])
 
-    testset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
+    testset = MVTecAd(subset="test", category=args.category, root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
     test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
 
-    trainset = MVTecAd(subset="train", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
+    trainset = MVTecAd(subset="train", category=args.category, root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
     ts, vs = get_trainval_samplers(trainset, validation_split=0.2)
     train_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=ts)
     val_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=vs)
