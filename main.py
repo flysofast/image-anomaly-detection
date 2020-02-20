@@ -9,7 +9,7 @@ from datasets import HAM10000, get_trainval_samplers
 # import matplotlib.pyplot as plt
 from tqdm import tqdm
 import random
-from model import Autoencoder
+from model import *
 from datasets import MVTecAd
 import datetime
 from tensorboardX import SummaryWriter
@@ -22,7 +22,7 @@ os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 def train(train_loader, val_loader, test_loader, args):
     num_epochs = args.epochs
 
-    model = Autoencoder()
+    model = Bottleneckv2()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
@@ -89,7 +89,7 @@ def train(train_loader, val_loader, test_loader, args):
                 state_dict = model.module.state_dict()
             else:
                 state_dict = model.state_dict()
-            model_file = os.path.join(weights_folder, f"model_{epoch}.pth")
+            model_file = os.path.join(weights_folder, f"{model.__class__.__name__}_{epoch}.pth")
             torch.save(state_dict, model_file)
             print(f"Model saved at {model_file}")
         
@@ -125,6 +125,7 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     # Loading and Transforming data
     train_data_transform = transforms.Compose([
+            # transforms.Resize(512),
             # transforms.RandomSizedCrop(224),
             # transforms.RandomPerspective(),
             transforms.RandomCrop(args.crop_size),
@@ -135,6 +136,7 @@ if __name__ == "__main__":
             #                      std=[0.229, 0.224, 0.225]),
         ])
     test_data_transform = transforms.Compose([
+            # transforms.Resize(512),
             transforms.ToTensor(),
         ])
 
