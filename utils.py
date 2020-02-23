@@ -82,7 +82,7 @@ def channelwised_normalize(batch_image):
             batch_image[si, ci,:,:] = (channel - mi)/(ma - mi)
     return batch_image
 
-def binarize(batch_image):
+def binarize(batch_image, output_channels):
     """
         Binarize the input image with binary threshold, using 0.5 threshold, Gaussian adaptive threshold and OTSU threshold
         Parameters:
@@ -90,24 +90,36 @@ def binarize(batch_image):
         Returns:
             3 thresholded images
     """
-    th_batch, gth_batch, otsu_batch = torch.zeros_like(batch_image), torch.zeros_like(batch_image), torch.zeros_like(batch_image)
+    output_shape = (batch_image.shape[0], batch_image.shape[1], batch_image.shape[2], batch_image.shape[3]*2)
+    th_batch, gth_batch, otsu_batch = torch.zeros(output_shape), torch.zeros(output_shape), torch.zeros(output_shape)
     batch_image = batch_image.permute(0, 2, 3, 1).cpu().numpy()
     for i, image in enumerate(batch_image):
         img = cv2.convertScaleAbs(image) * 255
 
         _ ,img1 = cv2.threshold(img,20,255,cv2.THRESH_BINARY)
+        img1 = np.hstack((img1, enhanceMorph(img1)))
         cv2.normalize(img1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         img2 = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,11,2)
+        img2 = np.hstack((img2, enhanceMorph(img2)))
         cv2.normalize(img2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         _ ,img3 = cv2.threshold(img,128,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        img3 = np.hstack((img3, enhanceMorph(img3)))
         cv2.normalize(img3, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         th_batch[i] = torch.from_numpy(img1).unsqueeze(2).permute(2,0,1)
         gth_batch[i] = torch.from_numpy(img2).unsqueeze(2).permute(2,0,1)
         otsu_batch[i] = torch.from_numpy(img3).unsqueeze(2).permute(2,0,1)
-    return th_batch.expand(-1, 3, -1, -1), gth_batch.expand(-1, 3, -1, -1), otsu_batch.expand(-1, 3, -1, -1)
+    return th_batch.expand(-1, output_channels, -1, -1), gth_batch.expand(-1, output_channels, -1, -1), otsu_batch.expand(-1, output_channels, -1, -1)
+
+def enhanceMorph(img):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4,4))
+    img = cv2.erode(img, kernel, iterations=1) # Clean noise pixels
+    img = cv2.dilate(img, kernel, iterations=3) # Connect segments
+    img = cv2.erode(img, kernel, iterations=1) # Remove noises
+    return img
+
 
 # if __name__ == "__main__":
     
