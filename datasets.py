@@ -39,6 +39,7 @@ class MVTecAd(Dataset):
         self.category = category
 
     def __len__(self):
+        return 5
         return len(self.images)
 
     def __getitem__(self, idx):
@@ -64,7 +65,7 @@ class MVTecAd(Dataset):
             # Good samples won't have ground truth
             if os.path.exists(gt_path):
                 gt = Image.open(gt_path)
-                gt = transforms.functional.to_tensor(gt).expand(3, -1, -1)
+                gt = transforms.functional.to_tensor(gt).expand(img.shape[0], -1, -1)
         
         return img, gt
 

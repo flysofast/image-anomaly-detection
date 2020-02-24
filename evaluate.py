@@ -14,7 +14,9 @@ from torchvision import transforms
 import torch.nn.functional as F
 from datasets import MVTecAd
 from matplotlib import pyplot as plt
-os.environ["PYTHONBREAKPOINT"] = "pub.set_trace"
+from PIL import ImageDraw
+from PIL import ImageFont
+os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n_saved_results=5, epoch=0):
     """
         Perform evaluation on the test set
@@ -29,11 +31,12 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
         chosen_sample_i = torch.multinomial(torch.Tensor(range(len(test_loader))), num_samples = n_saved_results, replacement=False)
     else:
         chosen_sample_i = range(len(test_loader))
-
+    n_output_channels = 3
     with torch.no_grad():
         for index, (img, gt) in enumerate(tqdm(test_loader)):
             # img, _ = data
             img = img.to(device)
+            n_output_channels = img.shape[1]
             gt = gt.to(device)
             output = model(img)
             diff = torch.abs(img - output)
@@ -44,33 +47,47 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
 
             diff_avg = channelwised_normalize(diff_avg)
             diff = channelwised_normalize(diff)     
-            th_diff, gth_diff, otsu_diff = binarize(diff_avg)
+            th_diff, gth_diff, otsu_diff = binarize(diff_avg, n_output_channels)
 
             # Make the grayscale image 3-channeled
-            diff_avg = diff_avg.expand(-1, 3, -1, -1)
+            diff_avg = diff_avg.expand(-1, n_output_channels, -1, -1)
             loss = loss_op(diff_avg, gt)
             test_epoch_loss += loss.item()
 
             # Save the results if requested
             if index in chosen_sample_i:
-                image = torch.cat((img, output, gt, diff_avg, th_diff, gth_diff, otsu_diff), 0)
+                io_pair = torch.cat((img, output), dim=3)
+                gt_pair = torch.cat((gt, diff_avg), dim=3)
+                
+                image = torch.cat((io_pair, gt_pair, th_diff, gth_diff, otsu_diff), 0)
                 if test_images is None:
                     test_images = image
                 else:
                     test_images = torch.cat((test_images, image), dim=0)
+                
+                # test_images = transforms.ToPILImage()(test_images)
+                # draw = ImageDraw.Draw(test_images)
+                # font = ImageFont.truetype(font="BebasNeue-Regular.ttf", size=23)
+
+                # draw.text(
+                #     (0,0),
+                #     f"{loss.item():.3f}",
+                #     (0,0,0), font=font
+                # )
+                # draw.text(
+                #     (0,25),
+                #     f"{loss.item():.3f}",
+                #     (255,255,255), font=font
+                # )
+                # test_images = transforms.ToTensor()(test_images).unsqueeze(0)
 
         test_epoch_loss = test_epoch_loss/len(test_loader)
-        test_images = torchvision.utils.make_grid(test_images, nrow=7)
-
-       
-        test_images = test_images.unsqueeze(0)
-        test_images =  F.interpolate(test_images, scale_factor=0.2)
+        test_images = torchvision.utils.make_grid(test_images, nrow=5)
+        test_images = F.interpolate(test_images, scale_factor=1/5)
         result_image = os.path.join(results_folder, f"val_{epoch}.png")
         torchvision.utils.save_image(test_images, result_image)
         print(f"Test images saved at {results_folder}")
-        # plt.imshow(plt.imread(result_image))
-        # plt.show()
-        
+    
          # write to tensorboard
         if writer:
             test_images = test_images.squeeze(0)
@@ -78,6 +95,7 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
             writer.add_scalar("MSE/segmentation_test", test_epoch_loss, global_step=epoch )
 
     return test_epoch_loss
+
 
 
 
@@ -101,6 +119,6 @@ if __name__ == "__main__":
             transforms.ToTensor(),
         ])
 
-    testset = MVTecAd(subset="test", category="hazelnut", root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
+    testset = MVTecAd(subset="test", category="zipper", root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
     test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
     test_on_mixed_samples(model=model, test_loader=test_loader, loss_op=nn.MSELoss(), writer=None, results_folder="test_results", n_saved_results=5)
