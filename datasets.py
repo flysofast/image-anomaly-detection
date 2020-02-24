@@ -52,7 +52,7 @@ class MVTecAd(Dataset):
         if self.transform:
             img = self.transform(img)
         
-        gt = torch.zeros_like(img)
+        gt = torch.zeros((1, img.shape[1], img.shape[2]))
         # Load ground truth if it's available
         if self.subset == "test":
             gt_path = img_path.replace(os.path.join(self.category, self.subset), os.path.join(self.category, "ground_truth"))
