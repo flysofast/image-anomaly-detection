@@ -8,8 +8,8 @@ do
     for model in "${models[@]}"
     do
         echo ==========MODEL: ${model} Cateogry: ${cat}====================
-        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name whole_${model}_${cat} --seed 42 --crop_size 256 --category ${cat} --train_mode whole_image --epochs 1
-        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name patch_${model}_${cat} --seed 42 --crop_size 128 --category ${cat} --train_mode patch --epochs 1
+        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name whole_${model}_${cat} --seed 42 --crop_size 256 --category ${cat} --train_mode whole_image --epochs 100 --root_dir dataset
+        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name patch_${model}_${cat} --seed 42 --crop_size 128 --category ${cat} --train_mode patch --epochs 100 --root_dir dataset
     done
 done
 
@@ -22,7 +22,7 @@ do
     for model in "${models[@]}"
     do
         echo ==========MODEL: ${model} Cateogry: ${cat}====================
-        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name brute_${model}_${cat} --seed 42 --crop_size 256 --category ${cat} --epochs 100
+        CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name brute_${model}_${cat} --seed 42 --crop_size 256 --category ${cat} --epochs 100 --root_dir dataset
     done
 done
 
