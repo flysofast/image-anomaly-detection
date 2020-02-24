@@ -65,7 +65,8 @@ class MVTecAd(Dataset):
             # Good samples won't have ground truth
             if os.path.exists(gt_path):
                 gt = Image.open(gt_path)
-                gt = transforms.functional.to_tensor(gt).expand(img.shape[0], -1, -1)
+                gt = gt.resize((img.size()[1], img.size()[2]))
+                gt = transforms.functional.to_tensor(gt)#.expand(img.shape[0], -1, -1)
         
         return img, gt
 

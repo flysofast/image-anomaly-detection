@@ -38,19 +38,19 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
             img = img.to(device)
             n_output_channels = img.shape[1]
             gt = gt.to(device)
+
             output = model(img)
-            diff = torch.abs(img - output)
+            # diff = torch.abs(img - output)
             
             # Grayscaled diff image (average of 3 channels)
             _, diff_avg = SSIM(img, output)
-            diff_avg = torch.mean(diff, dim=1).unsqueeze(1)
-
+            diff_avg = torch.mean(diff_avg, dim=1, keepdim=True)
             diff_avg = channelwised_normalize(diff_avg)
-            diff = channelwised_normalize(diff)     
+            # diff = channelwised_normalize(diff)     
             th_diff, gth_diff, otsu_diff = binarize(diff_avg, n_output_channels)
 
             # Make the grayscale image 3-channeled
-            diff_avg = diff_avg.expand(-1, n_output_channels, -1, -1)
+            diff_avg = diff_avg
             loss = loss_op(diff_avg, gt)
             test_epoch_loss += loss.item()
 
@@ -58,32 +58,27 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
             if index in chosen_sample_i:
                 io_pair = torch.cat((img, output), dim=3)
                 gt_pair = torch.cat((gt, diff_avg), dim=3)
-                
+                gt_pair = gt_pair.squeeze(0)
+                gt_pair = transforms.ToPILImage()(gt_pair)
+                draw = ImageDraw.Draw(gt_pair)
+                font = ImageFont.truetype(font="BebasNeue-Regular.ttf", size=150)
+                # font = ImageFont.truetype("sans-serif.ttf", 16)
+
+                draw.text((0,0),f"{loss.item():.3f}", (0), font=font)
+                draw.text((0,25),f"{loss.item():.3f}",(255), font=font)
+                gt_pair = transforms.ToTensor()(gt_pair).unsqueeze(0).expand(-1, n_output_channels, -1, -1)
                 image = torch.cat((io_pair, gt_pair, th_diff, gth_diff, otsu_diff), 0)
                 if test_images is None:
                     test_images = image
                 else:
                     test_images = torch.cat((test_images, image), dim=0)
                 
-                # test_images = transforms.ToPILImage()(test_images)
-                # draw = ImageDraw.Draw(test_images)
-                # font = ImageFont.truetype(font="BebasNeue-Regular.ttf", size=23)
-
-                # draw.text(
-                #     (0,0),
-                #     f"{loss.item():.3f}",
-                #     (0,0,0), font=font
-                # )
-                # draw.text(
-                #     (0,25),
-                #     f"{loss.item():.3f}",
-                #     (255,255,255), font=font
-                # )
-                # test_images = transforms.ToTensor()(test_images).unsqueeze(0)
+                
 
         test_epoch_loss = test_epoch_loss/len(test_loader)
         test_images = torchvision.utils.make_grid(test_images, nrow=5)
-        test_images = F.interpolate(test_images, scale_factor=1/5)
+        test_images = test_images.unsqueeze(0)
+        test_images = F.interpolate(test_images, scale_factor=0.2)
         result_image = os.path.join(results_folder, f"val_{epoch}.png")
         torchvision.utils.save_image(test_images, result_image)
         print(f"Test images saved at {results_folder}")
@@ -96,18 +91,15 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
 
     return test_epoch_loss
 
-
-
-
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='Autoencoder anomaly detection')
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
-    parser.add_argument('--weights_path', type=str, default="weights/BottleNeckv4_50.pth", metavar='w',
+    parser.add_argument('--weights_path', type=str, default="output/BottleNeckv_5_09:46PM on February 24, 2020/models/Bottleneckv5_0.pth", metavar='w',
                         help='Saving interval in number of epochs')
 
     args = parser.parse_args()
-    model = Bottleneckv4()
+    model = Bottleneckv5()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model.load_state_dict(torch.load(args.weights_path, map_location=device))

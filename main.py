@@ -23,7 +23,7 @@ os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 def train(train_loader, val_loader, test_loader, args):
     num_epochs = args.epochs
 
-    model = getattr(Model, args.model)()
+    model = getattr(Model, args.model)(input_channels = args.nc_input)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
@@ -68,7 +68,6 @@ def train(train_loader, val_loader, test_loader, args):
         model.eval()
         epoch_loss = 0
         for i, (img, _) in enumerate(val_batches):
-            
             img = img.to(device)
             output = model(img)
             loss = loss_op(output, img)
@@ -108,13 +107,14 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='learning rate (default: 1e-3)')
     parser.add_argument('--num_workers', type=float, default=4)
+    parser.add_argument('--train_mode', type=str, default="whole_image", help='(whole_image/patch) Specify training for whole image or patches reconstruction. Patch size will be equal to crop_size')
     # parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
     #                     help='Learning rate step gamma (default: 0.7)')
 
     # Data settings
+    parser.add_argument("--root_dir", type=str, default="dataset/mvtec_anomaly_detection")
     parser.add_argument('--category', type=str, default="hazelnut")
-
-    parser.add_argument('--crop_size', type=int, default=400, metavar='cs',
+    parser.add_argument('--crop_size',  type=int, default=400, metavar='cs',
                         help='number of epochs to train (default: 200)')
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--n_saved_samples', type=int, default=5, help='number of random saved samples during testing (default: 5)')
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     torch.manual_seed(args.seed)
     # Loading and Transforming data
-    train_data_transform = transforms.Compose([
+    trans_list = [
             # transforms.Resize(512),
             # transforms.RandomSizedCrop(224),
             # transforms.RandomPerspective(),
@@ -134,16 +134,25 @@ if __name__ == "__main__":
             transforms.ToTensor(),
             # transforms.Normalize(mean=[0.485, 0.456, 0.406],
             #                      std=[0.229, 0.224, 0.225]),
-        ])
+        ]
+
+    if args.train_mode == "patch":
+        trans_list.insert(0, transforms.Resize((256,256)))
+
+    train_data_transform = transforms.Compose(trans_list)
     test_data_transform = transforms.Compose([
-            # transforms.Resize(512),
+            transforms.Resize(512),
+            # trans_list.insert(0, transforms.Resize((1024,1024)))
             transforms.ToTensor(),
         ])
 
-    testset = MVTecAd(subset="test", category=args.category, root_dir="dataset", transform=test_data_transform)
+    
+    args.nc_input = 1 if args.category in ["zipper", "grid", "screw"] else 3
+
+    testset = MVTecAd(subset="test", category=args.category, root_dir=args.root_dir, transform=test_data_transform)
     test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
 
-    trainset = MVTecAd(subset="train", category=args.category, root_dir="dataset", transform=train_data_transform)
+    trainset = MVTecAd(subset="train", category=args.category, root_dir=args.root_dir, transform=train_data_transform)
     ts, vs = get_trainval_samplers(trainset, validation_split=0.2)
     train_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=ts)
     val_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=vs)
