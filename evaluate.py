@@ -90,8 +90,10 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
     
          # write to tensorboard
         if writer:
+            test_images = test_images.squeeze(0)
             writer.add_image('Test images', test_images, global_step=epoch)
             writer.add_scalar("MSE/segmentation_test", test_epoch_loss, global_step=epoch )
+
     return test_epoch_loss
 
 
