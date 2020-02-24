@@ -9,7 +9,8 @@ from datasets import HAM10000, get_trainval_samplers
 # import matplotlib.pyplot as plt
 from tqdm import tqdm
 import random
-from model import *
+# from model import *
+import model as Model
 from datasets import MVTecAd
 import datetime
 from tensorboardX import SummaryWriter
@@ -22,7 +23,7 @@ os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 def train(train_loader, val_loader, test_loader, args):
     num_epochs = args.epochs
 
-    model = Bottleneckv2()
+    model = getattr(Model, args.model)()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
@@ -42,15 +43,13 @@ def train(train_loader, val_loader, test_loader, args):
     print("Start training")
     min_loss = 1e10
     # saving = False
+    # torchsummary.summary(model, train_loader.dataset[0].shape)
     for epoch in range(num_epochs):
         print(f"==============================Epoch {epoch+1}/{num_epochs}==============================")
         model.train(True)
         train_batches = tqdm(train_loader)
         epoch_loss = 0
         for i, (img,_) in enumerate(train_batches):
-            if epoch == 0 and i == 0:
-                torchsummary.summary(model, img[0].shape)
-
             img = img.to(device)
             optimizer.zero_grad()
             output = model(img)
@@ -101,6 +100,7 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='Autoencoder anomaly detection')
     parser.add_argument('--exp_name', type=str, default="AE")
+    parser.add_argument('--model', type=str, default="BottleNeckv4")
     parser.add_argument('--batch_size', type=int, default=32, metavar='b',
                         help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=200, metavar='ne',
@@ -140,10 +140,10 @@ if __name__ == "__main__":
             transforms.ToTensor(),
         ])
 
-    testset = MVTecAd(subset="test", category=args.category, root_dir="dataset/mvtec_anomaly_detection", transform=test_data_transform)
+    testset = MVTecAd(subset="test", category=args.category, root_dir="dataset", transform=test_data_transform)
     test_loader = DataLoader(testset, batch_size=1, num_workers=4, shuffle=True)
 
-    trainset = MVTecAd(subset="train", category=args.category, root_dir="dataset/mvtec_anomaly_detection", transform=train_data_transform)
+    trainset = MVTecAd(subset="train", category=args.category, root_dir="dataset", transform=train_data_transform)
     ts, vs = get_trainval_samplers(trainset, validation_split=0.2)
     train_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=ts)
     val_loader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers, sampler=vs)

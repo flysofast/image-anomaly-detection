@@ -14,7 +14,7 @@ from torchvision import transforms
 import torch.nn.functional as F
 from datasets import MVTecAd
 from matplotlib import pyplot as plt
-os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
+os.environ["PYTHONBREAKPOINT"] = "pub.set_trace"
 def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n_saved_results=5, epoch=0):
     """
         Perform evaluation on the test set
@@ -61,17 +61,22 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
 
         test_epoch_loss = test_epoch_loss/len(test_loader)
         test_images = torchvision.utils.make_grid(test_images, nrow=7)
-        # test_images = torchvision.transforms.Resize(2048)(test_images)
-        test_images = F.interpolate(test_images,scale_factor=1/3)
+
+       
+        test_images = test_images.unsqueeze(0)
+        test_images =  F.interpolate(test_images, scale_factor=0.2)
         result_image = os.path.join(results_folder, f"val_{epoch}.png")
-        # torchvision.utils.save_image(test_images, result_image)
+        torchvision.utils.save_image(test_images, result_image)
         print(f"Test images saved at {results_folder}")
-        plt.imshow(plt.imread(result_image))
-        plt.show()
+        # plt.imshow(plt.imread(result_image))
+        # plt.show()
+        
          # write to tensorboard
         if writer:
+            test_images = test_images.squeeze(0)
             writer.add_image('Test images', test_images, global_step=epoch)
             writer.add_scalar("MSE/segmentation_test", test_epoch_loss, global_step=epoch )
+
     return test_epoch_loss
 
 
