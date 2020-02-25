@@ -18,6 +18,7 @@ import argparse
 from evaluate import test_on_mixed_samples
 from splitter import split_train_test
 import torchsummary
+from ssim_loss import SSIM
 os.environ["PYTHONBREAKPOINT"] = "pudb.set_trace"
 
 def train(train_loader, val_loader, test_loader, args):
@@ -30,7 +31,8 @@ def train(train_loader, val_loader, test_loader, args):
         model = nn.DataParallel(model)
     model = model.to(device)
 
-    loss_op = nn.MSELoss()
+    # loss_op = nn.MSELoss()
+    loss_op = SSIM()
     optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5, lr=args.lr)
     exp_name = f'{args.exp_name}_{datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")}'
     output_folder = os.path.join("output", exp_name)
@@ -59,7 +61,7 @@ def train(train_loader, val_loader, test_loader, args):
             optimizer.step()
             loss_val = loss.item()
             epoch_loss += loss_val
-            writer.add_scalar("MSE/train", loss_val, epoch * len(train_loader) + i)
+            writer.add_scalar("SSIM/train", loss_val, epoch * len(train_loader) + i)
         train_loss = epoch_loss/len(train_loader)
         
         #=================Validate the autoencoder on val set===============
@@ -70,8 +72,7 @@ def train(train_loader, val_loader, test_loader, args):
         for i, (img, _) in enumerate(val_batches):
             img = img.to(device)
             output = model(img)
-            loss = loss_op(output, img)
-
+            loss = 1- loss_op(output, img)
             loss_val = loss.item()
             epoch_loss += loss_val
             writer.add_scalar("MSE/val", loss_val, epoch * len(val_loader) + i)
