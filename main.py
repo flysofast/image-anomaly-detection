@@ -31,8 +31,11 @@ def train(train_loader, val_loader, test_loader, args):
         model = nn.DataParallel(model)
     model = model.to(device)
 
-    # loss_op = nn.MSELoss()
-    loss_op = SSIM()
+    if args.loss == "MSE":
+        loss_op = nn.MSELoss()
+    else:
+        loss_op = SSIM()
+
     optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5, lr=args.lr)
     exp_name = f'{args.exp_name}_{datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")}'
     output_folder = os.path.join("output", exp_name)
@@ -61,7 +64,7 @@ def train(train_loader, val_loader, test_loader, args):
             optimizer.step()
             loss_val = loss.item()
             epoch_loss += loss_val
-            writer.add_scalar("SSIM/train", loss_val, epoch * len(train_loader) + i)
+            writer.add_scalar(f"{args.loss}/train", loss_val, epoch * len(train_loader) + i)
         train_loss = epoch_loss/len(train_loader)
         
         #=================Validate the autoencoder on val set===============
@@ -75,7 +78,7 @@ def train(train_loader, val_loader, test_loader, args):
             loss = 1- loss_op(output, img)
             loss_val = loss.item()
             epoch_loss += loss_val
-            writer.add_scalar("SSIM/val", loss_val, epoch * len(val_loader) + i)
+            writer.add_scalar(f"{args.loss}/val", loss_val, epoch * len(val_loader) + i)
 
         #========Test on mixed set=============
         test_error = test_on_mixed_samples(model=model, test_loader=test_loader, 
@@ -100,7 +103,8 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='Autoencoder anomaly detection')
     parser.add_argument('--exp_name', type=str, default="AE")
-    parser.add_argument('--model', type=str, default="BottleNeckv4")
+    parser.add_argument('--model', type=str, default="BottleNeckv5")
+    parser.add_argument('--loss', type=str, default="MSE", help='Can be MSE or SSIM)')
     parser.add_argument('--batch_size', type=int, default=32, metavar='b',
                         help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=200, metavar='ne',

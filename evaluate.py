@@ -72,8 +72,6 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
                     test_images = image
                 else:
                     test_images = torch.cat((test_images, image), dim=0)
-                
-                
 
         test_epoch_loss = test_epoch_loss/len(test_loader)
         test_images = torchvision.utils.make_grid(test_images, nrow=5)
@@ -87,7 +85,7 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
         if writer:
             test_images = test_images.squeeze(0)
             writer.add_image('Test images', test_images, global_step=epoch)
-            writer.add_scalar("SSIM/Test", test_epoch_loss, global_step=epoch )
+            writer.add_scalar(f"{loss_op.__class__.__name__}/Test", test_epoch_loss, global_step=epoch )
 
     return test_epoch_loss
 
