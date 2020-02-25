@@ -75,7 +75,7 @@ def train(train_loader, val_loader, test_loader, args):
             loss = 1- loss_op(output, img)
             loss_val = loss.item()
             epoch_loss += loss_val
-            writer.add_scalar("MSE/val", loss_val, epoch * len(val_loader) + i)
+            writer.add_scalar("SSIM/val", loss_val, epoch * len(val_loader) + i)
 
         #========Test on mixed set=============
         test_error = test_on_mixed_samples(model=model, test_loader=test_loader, 
