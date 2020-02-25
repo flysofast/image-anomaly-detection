@@ -58,7 +58,11 @@ def train(train_loader, val_loader, test_loader, args):
             img = img.to(device)
             optimizer.zero_grad()
             output = model(img)
-            loss = 1- loss_op(output, img)
+            
+            if args.loss == "MSE":
+                loss = loss_op(output, img)
+            else:
+                loss = 1- loss_op(output, img)
 
             loss.backward()
             optimizer.step()
@@ -75,7 +79,12 @@ def train(train_loader, val_loader, test_loader, args):
         for i, (img, _) in enumerate(val_batches):
             img = img.to(device)
             output = model(img)
-            loss = 1- loss_op(output, img)
+        
+            if args.loss == "MSE":
+                loss = loss_op(output, img)
+            else:
+                loss = 1- loss_op(output, img)
+
             loss_val = loss.item()
             epoch_loss += loss_val
             writer.add_scalar(f"{args.loss}/val", loss_val, epoch * len(val_loader) + i)
@@ -112,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='learning rate (default: 1e-3)')
     parser.add_argument('--num_workers', type=float, default=4)
-    parser.add_argument('--train_mode', type=str, default="whole_image", help='(whole_image/patch) Specify training for whole image or patches reconstruction. Patch size will be equal to crop_size')
+    # parser.add_argument('--train_mode', type=str, default="whole_image", help='(whole_image/patch) Specify training for whole image or patches reconstruction. Patch size will be equal to crop_size')
     # parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
     #                     help='Learning rate step gamma (default: 0.7)')
 
@@ -141,12 +150,12 @@ if __name__ == "__main__":
             #                      std=[0.229, 0.224, 0.225]),
         ]
 
-    if args.train_mode == "patch":
-        trans_list.insert(0, transforms.Resize((256,256)))
+    # if args.train_mode == "patch":
+        # trans_list.insert(0, transforms.Resize((512,512)))
 
     train_data_transform = transforms.Compose(trans_list)
     test_data_transform = transforms.Compose([
-            transforms.Resize(512),
+            # transforms.Resize(512),
             # trans_list.insert(0, transforms.Resize((1024,1024)))
             transforms.ToTensor(),
         ])

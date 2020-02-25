@@ -32,4 +32,20 @@
 # done
 # CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model Bottleneckv4 --exp_name BottleNeckv4_wood --seed 42 --crop_size 300 --category wood
 
-CUDA_VISIBILE_DEVICES=0,1 python main.py --loss SSIM  --model Bottleneckv5  --batch_size 32 --exp_name whole_v5_SSIM --seed 42 --crop_size 256 --category carpet --train_mode whole 
+
+
+losses=(MSE SSIM)
+crop_size=(256 512)
+models=(Bottleneckv4 Bottleneckv2 Bottleneckv5)
+for loss in "${losses[@]}"
+do
+    for cs in "${crop_size[@]}"
+    do
+        for model in "${models[@]}"
+        do
+            echo ==========MODEL: ${model} Loss: ${loss} Crop size: ${cs}====================
+            CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model ${model} --exp_name final_${model}_${loss} --seed 42 --crop_size ${cs} --category hazelnut --epochs 500
+        done
+    done
+done
+# CUDA_VISIBILE_DEVICES=0,1 python main.py --loss SSIM  --model Bottleneckv5  --batch_size 32 --exp_name whole_v5_SSIM --seed 42 --crop_size 256 --category hazelnut --train_mode whole 
