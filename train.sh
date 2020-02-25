@@ -32,4 +32,4 @@
 # done
 # CUDA_VISIBILE_DEVICES=0,1 python main.py --batch_size 32 --model Bottleneckv4 --exp_name BottleNeckv4_wood --seed 42 --crop_size 300 --category wood
 
-CUDA_VISIBILE_DEVICES=0,1 python main.py  --model Bottleneckv5  --batch_size 32 --exp_name BottleNeckv_5 --seed 42 --crop_size 256 --category carpet --train_mode whole 
+CUDA_VISIBILE_DEVICES=0,1 python main.py  --model Bottleneckv5  --batch_size 32 --exp_name whole_v5_SSIM --seed 42 --crop_size 256 --category carpet --train_mode whole 

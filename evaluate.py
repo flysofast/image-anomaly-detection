@@ -51,7 +51,7 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
 
             # Make the grayscale image 3-channeled
             diff_avg = diff_avg
-            loss = loss_op(diff_avg, gt)
+            loss = 1-loss_op(diff_avg, gt)
             test_epoch_loss += loss.item()
 
             # Save the results if requested
@@ -87,7 +87,7 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
         if writer:
             test_images = test_images.squeeze(0)
             writer.add_image('Test images', test_images, global_step=epoch)
-            writer.add_scalar("MSE/segmentation_test", test_epoch_loss, global_step=epoch )
+            writer.add_scalar("SSIM/Test", test_epoch_loss, global_step=epoch )
 
     return test_epoch_loss
 

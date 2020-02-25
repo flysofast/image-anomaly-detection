@@ -55,7 +55,7 @@ def train(train_loader, val_loader, test_loader, args):
             img = img.to(device)
             optimizer.zero_grad()
             output = model(img)
-            loss = loss_op(output, img)
+            loss = 1- loss_op(output, img)
 
             loss.backward()
             optimizer.step()
