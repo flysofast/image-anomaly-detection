@@ -59,15 +59,15 @@ def test_on_mixed_samples(model, test_loader, loss_op, writer, results_folder, n
                 io_pair = torch.cat((img, output), dim=3)
                 gt_pair = torch.cat((gt, diff_avg), dim=3)
                 gt_pair = gt_pair.squeeze(0)
-                gt_pair = transforms.ToPILImage()(gt_pair)
+                gt_pair = transforms.ToPILImage()(gt_pair.cpu())
                 draw = ImageDraw.Draw(gt_pair)
                 font = ImageFont.truetype(font="BebasNeue-Regular.ttf", size=150)
                 # font = ImageFont.truetype("sans-serif.ttf", 16)
 
                 draw.text((0,0),f"{loss.item():.3f}", (0), font=font)
                 draw.text((0,25),f"{loss.item():.3f}",(255), font=font)
-                gt_pair = transforms.ToTensor()(gt_pair).unsqueeze(0).expand(-1, n_output_channels, -1, -1)
-                image = torch.cat((io_pair, gt_pair, th_diff, gth_diff, otsu_diff), 0)
+                gt_pair = transforms.ToTensor()(gt_pair).unsqueeze(0).expand(-1, n_output_channels, -1, -1).to(device)
+                image = torch.cat((io_pair.to(device), gt_pair.to(device), th_diff.to(device), gth_diff.to(device), otsu_diff.to(device)), 0)
                 if test_images is None:
                     test_images = image
                 else:
