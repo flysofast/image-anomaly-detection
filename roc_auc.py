@@ -29,11 +29,15 @@ if __name__ == "__main__":
     log = open(os.path.join(eval_folder, "benchmark.txt"), "w")
 
     perf_results = {}
-    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_400_MSE_512"]
-    arcs = ["Bottleneckv2", "Bottleneckv4", "Bottleneckv5"]
+    min_cat = {"auc": 2}
+    max_cat = {"auc": 0}
+    max_all = {"auc": 0}
+    min_all = {"auc": 2}
+    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_400_MSE_512", "weights/v2_360_SSIM_512.pth", "weights/v4_380_SSIM_512.pth", "weights/v5_SSIM_450_256.pth"]
+    arcs = ["Bottleneckv2", "Bottleneckv4", "Bottleneckv5","Bottleneckv2", "Bottleneckv4", "Bottleneckv5"]
     for model_path, model_arc in zip(m_paths, arcs):
-        print(f"{'='*30}{model_arc}{'='*30}")
-        log.write(f"{'='*30}{model_arc}{'='*30}\n")
+        print(f"{'='*30}{model_path}{'='*30}")
+        log.write(f"{'='*30}{model_path}{'='*30}\n")
         model = getattr(Model, model_arc)(input_channels = 3)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -45,7 +49,7 @@ if __name__ == "__main__":
 
         model = model.to(device)
         model.eval()
-        perf_results[model_arc] = {
+        perf_results[model_path] = {
             "weight" : model_path,
             # "mean_all": 0,
             "performance": [
@@ -111,19 +115,49 @@ if __name__ == "__main__":
             print(f"Average AUC: {defect} - {mean_auc} over {len(files)} files.")
             log.write(f"Average AUC: {defect} - {mean_auc} over {len(files)} files. \n")
             performance["mean_auc"] = mean_auc
+            if mean_auc > max_cat["auc"]:
+                max_cat["auc"] = mean_auc
+                max_cat["model"] = model_path
+                max_cat["cat"] = defect
+            if mean_auc > min_cat["auc"]:
+                min_cat["auc"] = mean_auc
+                min_cat["model"] = model_path
+                min_cat["cat"] = defect
             
-            perf_results[model_arc]["performance"].append(performance)
+            perf_results[model_path]["performance"].append(performance)
             overall_total+=total
             overall_files_count += len(files)
         
         mean_all = overall_total/overall_files_count
-        perf_results[model_arc]["mean_all"] = mean_all
+        perf_results[model_path]["mean_all"] = mean_all
         print(f"Average overall: {mean_all}")
         log.write(f"Average overall: {mean_all}\n")
-        
-        np.save(os.path.join(eval_folder, f"roc_benchmark.npy"), perf_results)
-        log.close()
-        
+        if mean_all > max_all["auc"]:
+                max_all["auc"] = mean_all
+                max_all["model"] = model_path
+        if mean_all > min_all["auc"]:
+                min_all["auc"] = mean_auc
+                min_all["model"] = model_path
+    
+    np.save(os.path.join(eval_folder, f"roc_benchmark.npy"), perf_results)
+
+    print(f"-----Max:-----")
+    print(f"By category: {max_cat['cat']} {max_cat['auc']} - {max_cat['model']}")
+    print(f"Overall: {max_all['auc']} - {max_all['model']}")
+    print(f"-----Min:-----")
+    print(f"By category: {min_cat['cat']} {min_cat['auc']} - {min_cat['model']}")
+    print(f"Overall: {min_all['auc']} - {min_all['model']}")
+
+    log.write(f"-----Max:-----\n")
+    log.write(f"By category: {max_cat['cat']} {max_cat['auc']} - {max_cat['model']}\n")
+    log.write(f"Overall: {max_all['auc']} - {max_all['model']}\n")
+    log.write(f"-----Min:-----\n")
+    log.write(f"By category: {min_cat['cat']} {min_cat['auc']} - {min_cat['model']}\n")
+    log.write(f"Overall: {min_all['auc']} - {min_all['model']}\n")
+    log.close()
+
+
+
 
 
     
