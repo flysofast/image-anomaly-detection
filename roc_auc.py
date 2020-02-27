@@ -79,12 +79,12 @@ if __name__ == "__main__":
                 filename, ext = filename.split(".")
 
                 input = Image.open(input_path)
-                input= torchvision.transforms.ToTensor()(input).unsqueeze(0)
+                input= torchvision.transforms.ToTensor()(input).unsqueeze(0).to(device)
                 # input_torch = torch.from_numpy(input).permute(2,0,1).unsqueeze(0)
                 output = model(input)
                 diff_avg = 1 - SSIM(input, output)[1]
                 diff_avg = torch.mean(diff_avg, dim=1, keepdim=True)
-                diff_avg = channelwised_normalize(diff_avg).detach()
+                diff_avg = channelwised_normalize(diff_avg).detach().cpu()
                 # enhanced_avg = enhanceMorph(diff_avg.numpy())
                 
                 # folder = f"{eval_folder}/{defect}"
