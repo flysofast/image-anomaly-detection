@@ -139,7 +139,9 @@ if __name__ == "__main__":
                 min_all["auc"] = mean_all
                 min_all["model"] = model_path
     
-    np.save(os.path.join(eval_folder, f"roc_benchmark.npy"), perf_results)
+    fn =os.path.join(eval_folder, f"roc_benchmark.npy")
+    np.save(fn, perf_results)
+    print(f"Saved results to {fn}")
 
     print(f"-----Max:-----")
     print(f"By category: {max_cat['cat']} {max_cat['auc']} - {max_cat['model']}")
@@ -155,12 +157,3 @@ if __name__ == "__main__":
     log.write(f"By category: {min_cat['cat']} {min_cat['auc']} - {min_cat['model']}\n")
     log.write(f"Overall: {min_all['auc']} - {min_all['model']}\n")
     log.close()
-
-
-
-
-
-    
-    
-
-
