@@ -119,7 +119,7 @@ if __name__ == "__main__":
                 max_cat["auc"] = mean_auc
                 max_cat["model"] = model_path
                 max_cat["cat"] = defect
-            if mean_auc > min_cat["auc"]:
+            if mean_auc < min_cat["auc"]:
                 min_cat["auc"] = mean_auc
                 min_cat["model"] = model_path
                 min_cat["cat"] = defect
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         if mean_all > max_all["auc"]:
                 max_all["auc"] = mean_all
                 max_all["model"] = model_path
-        if mean_all > min_all["auc"]:
+        if mean_all < min_all["auc"]:
                 min_all["auc"] = mean_auc
                 min_all["model"] = model_path
     
