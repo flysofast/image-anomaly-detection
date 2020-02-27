@@ -33,7 +33,7 @@ if __name__ == "__main__":
     max_cat = {"auc": 0}
     max_all = {"auc": 0}
     min_all = {"auc": 2}
-    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_400_MSE_512.pth", "weights/v2_360_SSIM_512.pth", "weights/v4_380_SSIM_512.pth", "weights/v5_SSIM_450_256.pth"]
+    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_340_MSE_512.pth", "weights/v2_360_SSIM_512.pth", "weights/v4_380_SSIM_512.pth", "weights/v5_SSIM_450_256.pth"]
     arcs = ["Bottleneckv2", "Bottleneckv4", "Bottleneckv5","Bottleneckv2", "Bottleneckv4", "Bottleneckv5"]
     for model_path, model_arc in zip(m_paths, arcs):
         print(f"{'='*30}{model_path}{'='*30}")
@@ -100,8 +100,8 @@ if __name__ == "__main__":
                 gt= (gt/255.0).reshape(-1)
                 diff_avg = diff_avg.numpy().squeeze(0).squeeze(0).reshape(-1)
                 auc = roc_auc_score(gt, diff_avg)
-                print(f"file {i}, {defect}: {auc}")
-                log.write(f"file {i}, {defect}: {auc}\n")
+                print(f"file {input_path}, {defect}: {auc}")
+                log.write(f"file {input_path}, {defect}: {auc}\n")
                 total += auc
                 performance["details"].append({
                     "file_path": input_path,
