@@ -33,7 +33,7 @@ if __name__ == "__main__":
     max_cat = {"auc": 0}
     max_all = {"auc": 0}
     min_all = {"auc": 2}
-    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_400_MSE_512", "weights/v2_360_SSIM_512.pth", "weights/v4_380_SSIM_512.pth", "weights/v5_SSIM_450_256.pth"]
+    m_paths = ["weights/v2_420_MSE_512.pth", "weights/v4_110_MSE_256.pth", "weights/v5_400_MSE_512.pth", "weights/v2_360_SSIM_512.pth", "weights/v4_380_SSIM_512.pth", "weights/v5_SSIM_450_256.pth"]
     arcs = ["Bottleneckv2", "Bottleneckv4", "Bottleneckv5","Bottleneckv2", "Bottleneckv4", "Bottleneckv5"]
     for model_path, model_arc in zip(m_paths, arcs):
         print(f"{'='*30}{model_path}{'='*30}")
