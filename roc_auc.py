@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 max_all["auc"] = mean_all
                 max_all["model"] = model_path
         if mean_all < min_all["auc"]:
-                min_all["auc"] = mean_auc
+                min_all["auc"] = mean_all
                 min_all["model"] = model_path
     
     np.save(os.path.join(eval_folder, f"roc_benchmark.npy"), perf_results)
